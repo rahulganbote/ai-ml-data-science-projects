@@ -1,0 +1,5 @@
+# Generative AI Demo (OpenAI) — Project Dependencies
+openai>=1.0.0
+python-dotenv>=0.21.0      # Load OPENAI_API_KEY from .env file
+jupyter>=1.0.0
+nbformat>=5.7.0

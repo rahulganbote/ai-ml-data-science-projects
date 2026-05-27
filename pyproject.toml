@@ -1,0 +1,76 @@
+# ──────────────────────────────────────────────────────────────
+# pyproject.toml
+# Project metadata and tool configuration for black, isort, flake8
+# ──────────────────────────────────────────────────────────────
+
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.backends.legacy:build"
+
+# ── Project metadata ──────────────────────────────────────────
+[project]
+name = "ai-ml-data-science-projects"
+version = "1.0.0"
+description = "Portfolio of 9 end-to-end AI/ML and Data Science projects — EDA, Classical ML, Deep Learning, NLP, Computer Vision, and Generative AI."
+readme = "README.md"
+license = { file = "LICENSE" }
+authors = [
+    { name = "Rahul Ganbote", email = "rganbote@gmail.com" }
+]
+keywords = [
+    "machine-learning",
+    "deep-learning",
+    "nlp",
+    "computer-vision",
+    "generative-ai",
+    "data-science",
+    "portfolio",
+]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Intended Audience :: Science/Research",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+requires-python = ">=3.9"
+
+[project.urls]
+"Homepage"    = "https://github.com/rahulganbote/ai-ml-data-science-projects"
+"Bug Tracker" = "https://github.com/rahulganbote/ai-ml-data-science-projects/issues"
+
+# ── black ─────────────────────────────────────────────────────
+# Opinionated code formatter.
+# Run:  black common/
+[tool.black]
+line-length = 88
+target-version = ["py39", "py310", "py311"]
+include = '\.pyi?$'
+exclude = '''
+/(
+    \.git
+  | \.venv
+  | venv
+  | __pycache__
+  | \.ipynb_checkpoints
+)/
+'''
+
+# ── isort ─────────────────────────────────────────────────────
+# Import sorter — profile=black ensures compatibility with black's formatting.
+# Run:  isort common/
+[tool.isort]
+profile = "black"
+line_length = 88
+known_first_party = ["utils", "visualization"]
+skip = [".venv", "venv", "__pycache__", ".ipynb_checkpoints"]
+
+# ── pytest (optional — for future unit tests) ─────────────────
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_functions = ["test_*"]
+addopts = "-v --tb=short"

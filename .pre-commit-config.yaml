@@ -1,0 +1,83 @@
+# ──────────────────────────────────────────────────────────────
+# .pre-commit-config.yaml
+#
+# Pre-commit hooks that run automatically before every `git commit`.
+#
+# Setup (one time per clone):
+#   pip install pre-commit
+#   pre-commit install
+#
+# Run manually against all files:
+#   pre-commit run --all-files
+#
+# Skip a hook for one commit (use sparingly):
+#   SKIP=nbstripout git commit -m "..."
+# ──────────────────────────────────────────────────────────────
+
+default_language_version:
+  python: python3.10
+
+repos:
+  # ── 1. General file hygiene ───────────────────────────────
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: trailing-whitespace
+        name: Trim trailing whitespace
+      - id: end-of-file-fixer
+        name: Ensure files end with newline
+        exclude: '\.ipynb$'
+      - id: check-yaml
+        name: Validate YAML syntax
+      - id: check-toml
+        name: Validate TOML syntax
+      - id: check-json
+        name: Validate JSON syntax
+        exclude: '\.ipynb$'          # notebooks are JSON but managed by nbstripout
+      - id: check-merge-conflict
+        name: Detect merge conflict markers
+      - id: check-added-large-files
+        name: Block large files (>1 MB)
+        args: ["--maxkb=1024"]
+        exclude: 'projects/.*\.ipynb$'   # notebooks can be larger
+
+  # ── 2. nbstripout — strip notebook outputs ────────────────
+  # Removes all cell outputs and execution counts before commit.
+  # This keeps git history clean and diffs readable.
+  - repo: https://github.com/kynan/nbstripout
+    rev: 0.7.1
+    hooks:
+      - id: nbstripout
+        name: Strip Jupyter notebook outputs
+        files: '\.ipynb$'
+
+  # ── 3. black — Python code formatter ─────────────────────
+  # Only runs on files inside common/ (shared utilities).
+  # Notebook cells are not formatted — do that manually in Colab/VS Code.
+  - repo: https://github.com/psf/black
+    rev: 24.4.2
+    hooks:
+      - id: black
+        name: black (format common/)
+        files: '^common/.*\.py$'
+        language_version: python3.10
+
+  # ── 4. isort — import sorter ──────────────────────────────
+  - repo: https://github.com/PyCQA/isort
+    rev: 5.13.2
+    hooks:
+      - id: isort
+        name: isort (sort imports in common/)
+        files: '^common/.*\.py$'
+        args: ["--profile", "black"]
+
+  # ── 5. flake8 — style linter ──────────────────────────────
+  - repo: https://github.com/PyCQA/flake8
+    rev: 7.1.0
+    hooks:
+      - id: flake8
+        name: flake8 (lint common/)
+        files: '^common/.*\.py$'
+        args:
+          - "--max-line-length=88"
+          - "--extend-ignore=E203,W503"

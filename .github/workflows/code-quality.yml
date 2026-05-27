@@ -1,0 +1,78 @@
+# ──────────────────────────────────────────────────────────────
+# Code Quality — runs on every push and pull request
+# Enforces consistent formatting and style on common/*.py:
+#   1. black  — opinionated code formatter (check mode only)
+#   2. isort  — import sort order consistent with black profile
+#   3. flake8 — PEP-8 style and unused import linting
+# ──────────────────────────────────────────────────────────────
+name: Code Quality
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "common/**/*.py"
+      - "pyproject.toml"
+      - ".github/workflows/code-quality.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "common/**/*.py"
+      - "pyproject.toml"
+      - ".github/workflows/code-quality.yml"
+
+jobs:
+  code-quality:
+    name: Lint & Format Check (common/)
+    runs-on: ubuntu-latest
+
+    steps:
+      # ── 1. Checkout ───────────────────────────────────────
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # ── 2. Python setup ───────────────────────────────────
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      # ── 3. Cache pip ──────────────────────────────────────
+      - name: Cache pip packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-quality-${{ hashFiles('requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-quality-
+
+      # ── 4. Install linting tools ──────────────────────────
+      - name: Install black, isort, flake8
+        run: |
+          pip install --upgrade pip
+          pip install black>=22.12.0 isort>=5.11.0 flake8>=6.0.0
+
+      # ── 5. black — format check ───────────────────────────
+      - name: black (format check)
+        run: |
+          echo "Running black format check on common/..."
+          black --check --diff common/
+        # black is configured in pyproject.toml (line-length=88)
+
+      # ── 6. isort — import sort check ─────────────────────
+      - name: isort (import sort check)
+        run: |
+          echo "Running isort check on common/..."
+          isort --check-only --diff common/
+        # isort profile=black is set in pyproject.toml
+
+      # ── 7. flake8 — style lint ────────────────────────────
+      - name: flake8 (style lint)
+        run: |
+          echo "Running flake8 on common/..."
+          flake8 common/ \
+            --max-line-length=88 \
+            --extend-ignore=E203,W503 \
+            --exclude=__pycache__,*.pyc
+        # E203: whitespace before ':' (conflicts with black slice formatting)
+        # W503: line break before binary operator (conflicts with black)

@@ -1,0 +1,100 @@
+# ──────────────────────────────────────────────────────────────
+# Notebook Validation — runs on every push and pull request
+# Checks that all .ipynb files:
+#   1. Parse as valid nbformat (structural integrity)
+#   2. Convert to script without errors (no broken cells)
+# ──────────────────────────────────────────────────────────────
+name: Notebook Validation
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "projects/**/*.ipynb"
+      - ".github/workflows/notebook-check.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "projects/**/*.ipynb"
+      - ".github/workflows/notebook-check.yml"
+
+jobs:
+  validate-notebooks:
+    name: Validate Jupyter Notebooks
+    runs-on: ubuntu-latest
+
+    steps:
+      # ── 1. Checkout ───────────────────────────────────────
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # ── 2. Python setup ───────────────────────────────────
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      # ── 3. Install validation tools ───────────────────────
+      - name: Install nbformat and nbconvert
+        run: |
+          pip install --upgrade pip
+          pip install nbformat nbconvert
+
+      # ── 4. Validate notebook format (nbformat schema) ─────
+      - name: Validate notebook structure (nbformat)
+        run: |
+          python - << 'EOF'
+          import os
+          import sys
+          import nbformat
+
+          errors = []
+          notebooks = []
+          for root, dirs, files in os.walk("projects"):
+              for f in files:
+                  if f.endswith(".ipynb"):
+                      notebooks.append(os.path.join(root, f))
+
+          print(f"Found {len(notebooks)} notebook(s) to validate.")
+
+          for nb_path in notebooks:
+              print(f"  Checking: {nb_path}")
+              try:
+                  with open(nb_path, encoding="utf-8") as fh:
+                      nb = nbformat.read(fh, as_version=4)
+                  nbformat.validate(nb)
+              except nbformat.ValidationError as e:
+                  errors.append(f"VALIDATION ERROR in {nb_path}: {e}")
+              except Exception as e:
+                  errors.append(f"READ ERROR in {nb_path}: {e}")
+
+          if errors:
+              print("\n❌ Notebook validation failed:")
+              for err in errors:
+                  print(f"  {err}")
+              sys.exit(1)
+          else:
+              print(f"\n✅ All {len(notebooks)} notebook(s) passed format validation.")
+          EOF
+
+      # ── 5. Validate notebooks convert to script ───────────
+      - name: Validate notebooks convert to script (nbconvert)
+        run: |
+          set -e
+          ERRORS=0
+          while IFS= read -r -d '' nb; do
+            echo "  Converting: $nb"
+            if ! jupyter nbconvert --to script "$nb" --stdout > /dev/null 2>&1; then
+              echo "  ❌ FAILED: $nb"
+              ERRORS=$((ERRORS + 1))
+            fi
+          done < <(find projects -name "*.ipynb" -print0)
+
+          if [ "$ERRORS" -gt 0 ]; then
+            echo ""
+            echo "❌ $ERRORS notebook(s) failed nbconvert check."
+            exit 1
+          else
+            echo ""
+            echo "✅ All notebooks passed nbconvert check."
+          fi
